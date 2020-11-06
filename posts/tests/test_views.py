@@ -17,56 +17,57 @@ class ViewsTest(TestCase):
         cls.authorized_client = Client()        
         cls.authorized_client.force_login(cls.user)
         cls.unauthorized_client = Client()
-    
-    def test_profie(self,username):
-        response = self.authorized_client.get(reverse('profile',kwargs={'username':self.user.username}))
-        self.assertEqual(response.status_code,200)
-        self.assertEqual(response.context["author"].username, self.user.username)
-        self.assertEqual(response.context["author"].username, self.user.username)
+        cls.group = Group.objects.create(title='TestGroup',
+                                         slug='Group for test',
+                                         description='Testing site elements')
+        cls.post = Post.objects.create(text='Text text text',
+                                       author=cls.user,
+                                       group=cls.group,
+                                       )
+
+    def test_unauthorized_user(self):
+        response = self.unauthorized_client.get('new_post')
+        self.assertEqual(response.status_code, 404)
+
+    def edit_forms(self, response, user, new_text, new_group):
+        self.assertEqual(response.author, user)
+        self.assertEqual(response.text, new_text)
+        self.assertEqual(response.group, new_group)
 
     def test_new_post(self):
-        new_post = self.authorized_client.post(
-            reverse("new_post"), 
-                  {"text": "Это текст публикации", 
-                   "group": "Shikama"}, 
-            follow=True
-        )
-        response = self.authorized_client.get("/")
-        self.assertContains(
-            response, 
-            text="Это текст публикации",
-            msg_prefix=("Новый пост не отображается на главной странице (index)"),
-        )
-
-    def test_published_post(self):
-        client = Client()
-        user = User.objects.create_user(username="StasBoretskiy",password="ArmorUnit")
-        client.force_login(user)
-        response = client.post('/new/',
-                              {'text':'Read this pls'},
-                              follow=True,
-        )
-        response = client.get('/index/')
-        post = Post.objects.get(author=user)
-        post_id = post.pk
-        self.assertContains(response, post_id)
-
-    def test_post_edit(self):
-        text = 'Возможно отредактированный текст из-за очепятки'
-        response = self.authorized_client.post("/new/",
-                                                "text":text,
-                                                follow=True
-        )
+        count = Post.objects.count()
+        response = self.authorized_client.post(reverse('new_post'),
+                                              {'text':'Новый пост'},
+                                              follow=True
+    )
         self.assertEqual(response.status_code, 200)
-        post = Post.objects.get(text=text)
-        edit_text="Отредактированный текст"
-        editing_post = self.authorized_client.post(f"{post.author.username}/{post.id}/edit/",
-                                                      {"text":edit_text},
-                                                      follow=True,
-        )
-        post = Post.objects.get(text=edit_text)
+        self.assertEqual(Post.objects.count(),count + 1)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(post.text, edit_text, 'Функция post_edit работает неправильно')
-
-
+    def test_show_edit(self):
+        new = self.authorized_client.post(
+            reverse('post_edit', args=(self.user.username, self.post.pk)),
+            data={'text': 'new text', 'group': self.group.id},
+            follow=True,
+    )
+        edit_post = self.authorized_client.post('/IvanIvanov/1/edit',
+                                               {'text':self.post.text,'id':self.post.pk},
+                  
+                                               follow=True
+    )
+    
+        urls = (reverse('index'),reverse('profile',kwargs={'username':self.user}),
+                reverse('post',kwargs={'username':self.user,'post_id':self.post.pk}))
+        for url in urls:
+            print(url)
+            response_authorized = self.authorized_client.get(url)
+            response_unauthorized = self.unauthorized_client.get(url)
+            self.assertContains(response_authorized,
+                text = 'new text',
+                msg_prefix=('the edited post is not displayed'
+                            ' on the page for an authorized user'
+    ))
+            self.assertContains(response_unauthorized,
+                text = 'new text',
+                msg_prefix=('the edited post is not displayed'
+                ' on the page for an unauthorized user'
+    ))

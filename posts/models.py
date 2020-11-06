@@ -24,7 +24,7 @@ class Group(models.Model):
 class Post(models.Model):
     text = models.TextField()
     pub_date = models.DateTimeField(
-        "date published", 
+        'date published', 
         auto_now_add=True,
     )
 
@@ -32,13 +32,13 @@ class Post(models.Model):
     author = models.ForeignKey(
         User, 
         on_delete=models.CASCADE,
-        related_name="posts",
+        related_name='posts',
     )
 
     group = models.ForeignKey(
         Group, 
         on_delete=models.SET_NULL, 
-        related_name="posts", 
+        related_name='posts', 
         blank=True, 
         null=True,
     )
@@ -47,6 +47,5 @@ class Post(models.Model):
     class Meta:
         ordering = ('-pub_date',)
 
-    # printing posts text
     def __str__(self):
         return self.text
