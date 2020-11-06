@@ -2,12 +2,9 @@ from django.contrib.auth import get_user_model
 from django.http import response
 from django.test import TestCase, Client
 from django.urls import reverse
-from django.shortcuts import get_object_or_404
 
-from posts.models import Post, Group
+from posts.models import Post, Group, User
 
-
-User = get_user_model()
 
 class ViewsTest(TestCase):
     @classmethod
