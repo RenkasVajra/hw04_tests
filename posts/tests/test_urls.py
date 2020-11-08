@@ -53,7 +53,7 @@ class StaticURLTests(TestCase):
         self.assertEqual(
             response.status_code,
             200,
-            'Функция post_edit неправильно работает - пост не редактируется',
+            'Функция post_edit неправильно работает',
     )
     
     def test_new_profile(self):

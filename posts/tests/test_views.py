@@ -17,54 +17,61 @@ class ViewsTest(TestCase):
         cls.group = Group.objects.create(title='TestGroup',
                                          slug='Group for test',
                                          description='Testing site elements')
-        cls.post = Post.objects.create(text='Text text text',
+        cls.post_new = Post.objects.create(text='Text text text',
                                        author=cls.user,
                                        group=cls.group,
                                        )
+
+        
 
     def test_unauthorized_user(self):
         response = self.unauthorized_client.get('new_post')
         self.assertEqual(response.status_code, 404)
 
-    def edit_forms(self, response, user, new_text, new_group):
-        self.assertEqual(response.author, user)
-        self.assertEqual(response.text, new_text)
-        self.assertEqual(response.group, new_group)
-
     def test_new_post(self):
+        new_group = self.group
         count = Post.objects.count()
         response = self.authorized_client.post(reverse('new_post'),
                                               {'text':'Новый пост'},
                                               follow=True
-    )
+                                              )
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Post.objects.count(),count + 1)
+        self.assertEqual(self.post_new.author,self.user,
+                         'User is not author of this publication')
+        self.assertIsNotNone(self.post_new.text,
+                             'The text field cannot be empty')
+        self.assertEqual(self.post_new.group, new_group,
+                         'The selected group does not exist')
 
     def test_show_edit(self):
-        new = self.authorized_client.post(
-            reverse('post_edit', args=(self.user.username, self.post.pk)),
-            data={'text': 'new text', 'group': self.group.id},
-            follow=True,
-    )
-        edit_post = self.authorized_client.post('/IvanIvanov/1/edit',
-                                               {'text':self.post.text,'id':self.post.pk},
-                  
-                                               follow=True
-    )
-    
-        urls = (reverse('index'),reverse('profile',kwargs={'username':self.user}),
-                reverse('post',kwargs={'username':self.user,'post_id':self.post.pk}))
+        new_text ='Edited text!!!'
+        self.authorized_client.post(reverse('post_edit',kwargs={
+                                'post_id':self.post_new.pk,
+                                'username':self.post_new.author},
+
+                                
+                                ),{'text': new_text},follow=True)
+        urls = (reverse('index'
+                        ),
+                reverse('profile',kwargs=
+                {'username':self.post_new.author}
+                    ),
+                reverse('post',kwargs={
+                    'username':self.post_new.author,
+                    'post_id':self.post_new.pk}
+                    ))
         for url in urls:
-            print(url)
-            response_authorized = self.authorized_client.get(url)
-            response_unauthorized = self.unauthorized_client.get(url)
-            self.assertContains(response_authorized,
-                text = 'new text',
-                msg_prefix=('the edited post is not displayed'
-                            ' on the page for an authorized user'
-    ))
-            self.assertContains(response_unauthorized,
-                text = 'new text',
-                msg_prefix=('the edited post is not displayed'
-                ' on the page for an unauthorized user'
-    ))
+            with self.subTest(url=url):
+                response = self.authorized_client.get(url)
+                response_unauthorized = self.unauthorized_client.get(url) 
+                paginator = response.context.get('paginator')
+                if paginator is not None:
+                    self.assertEqual(paginator.count, 1)
+                    post = response.context['page'][0]
+                else:
+                    post = response.context['post']
+                self.assertEqual(response.status_code,200)
+                self.assertEqual(post.author, self.post_new.author)
+                self.assertEqual(post.text, new_text)

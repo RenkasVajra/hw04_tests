@@ -24,7 +24,7 @@ def group_posts(request, slug):
                                           'group': group, 
                                           'page': page,  
                                           'paginator': paginator 
-    }) 
+                                          }) 
  
 def index(request): 
     post_list = Post.objects.order_by('-pub_date').all() 
@@ -33,7 +33,7 @@ def index(request):
     page = paginator.get_page(page_number) 
     return render( request, 'index.html', {'page': page,  
                                            'paginator': paginator,
-    }) 
+                                           }) 
  
 @login_required 
 def new_post(request): 
@@ -58,7 +58,8 @@ def profile(request, username):
     page = paginator.get_page(page_number) 
     return render(request, 'profile.html', 
                   {'posts': authors_posts, "page": page, 
-                   "paginator": paginator, "author": author}) 
+                   "paginator": paginator, "author": author
+                   }) 
 
 def post_view(request, username, post_id): 
     post = get_object_or_404(Post,author__username=username,pk=post_id,) 
@@ -68,7 +69,7 @@ def post_view(request, username, post_id):
     return render(request, 'post.html', {'post': post, 
                                          'author': author,
                                          'count':count,    
-    }) 
+                                        }) 
 
 @login_required
 def post_edit(request, username, post_id):
@@ -79,14 +80,15 @@ def post_edit(request, username, post_id):
     if post.author != request.user: 
         return render(request,'post.html',{'username':username, 
                                            'post_id':post.pk, 
-    })
+                                            })
         
     if not form.is_valid(): 
-        return render(request,'new.html',{'username':username, 
-                                      'post_id':post.pk, 
-                                      'post': post,
-                                      "form":form
-    }) 
+        return render(request,'new.html',{
+            'username':username, 
+            'post_id':post.pk, 
+            'post': post,
+            'form':form
+            }) 
 
     form.save()
     return redirect('post', username, post_id)
