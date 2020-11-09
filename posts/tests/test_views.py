@@ -14,13 +14,16 @@ class ViewsTest(TestCase):
         cls.authorized_client = Client()        
         cls.authorized_client.force_login(cls.user)
         cls.unauthorized_client = Client()
-        cls.group = Group.objects.create(title='TestGroup',
-                                         slug='Group for test',
-                                         description='Testing site elements')
-        cls.post_new = Post.objects.create(text='Text text text',
-                                       author=cls.user,
-                                       group=cls.group,
-                                       )
+        cls.group = Group.objects.create(
+            title='TestGroup',
+            slug='Group for test',
+            description='Testing site elements'
+            )
+        cls.post_new = Post.objects.create(
+            text='Text text text',
+            author=cls.user,
+            group=cls.group,
+            )
 
         
 
@@ -32,9 +35,9 @@ class ViewsTest(TestCase):
         new_group = self.group
         count = Post.objects.count()
         response = self.authorized_client.post(reverse('new_post'),
-                                              {'text':'Новый пост'},
-                                              follow=True
-                                              )
+        {'text':'Новый пост'},
+        follow=True
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Post.objects.count(),count + 1)
@@ -46,24 +49,30 @@ class ViewsTest(TestCase):
                          'The selected group does not exist')
 
     def test_show_edit(self):
+
         new_text ='Edited text!!!'
         self.authorized_client.post(reverse('post_edit',kwargs={
-                                'post_id':self.post_new.pk,
-                                'username':self.post_new.author},
-
-                                
-                                ),{'text': new_text},follow=True)
-        urls = (reverse('index'
-                        ),
-                reverse('profile',kwargs=
-                {'username':self.post_new.author}
-                    ),
-                reverse('post',kwargs={
-                    'username':self.post_new.author,
-                    'post_id':self.post_new.pk}
-                    ))
+        'post_id':self.post_new.pk,
+        'username':self.post_new.author
+        },
+    ),
+        {'text': new_text},
+        follow=True
+        )
+        urls = (
+    reverse('index'),
+    reverse('profile', kwargs={'username': self.post_new.author}),
+    reverse(
+        'post',
+        kwargs={
+            'username': self.post_new.author,
+            'post_id': self.post_new.pk,
+        },
+    ),
+)
         for url in urls:
             with self.subTest(url=url):
+                posts = Post.objects.all()
                 response = self.authorized_client.get(url)
                 response_unauthorized = self.unauthorized_client.get(url) 
                 paginator = response.context.get('paginator')
@@ -75,3 +84,4 @@ class ViewsTest(TestCase):
                 self.assertEqual(response.status_code,200)
                 self.assertEqual(post.author, self.post_new.author)
                 self.assertEqual(post.text, new_text)
+                self.assertEqual(posts[0].text, new_text)
